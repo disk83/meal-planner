@@ -183,6 +183,28 @@ async def update_recipe(recipe_id: int, recipe: RecipeCreate):
 
     return {"success": True, "recipe_id": recipe_id}
 
+# ── Route: delete a recipe ────────────────────────────────────────
+@app.delete("/recipes/{recipe_id}")
+async def delete_recipe(recipe_id: int):
+    async with httpx.AsyncClient() as client:
+
+        # 1. Delete ingredient links
+        await client.delete(
+            f"{SUPABASE_URL}/rest/v1/recipe_ingredients?recipe_id=eq.{recipe_id}",
+            headers=SUPABASE_HEADERS
+        )
+    
+        # 2. Delete the recipe itself
+        recipe_res = await client.delete(
+            f"{SUPABASE_URL}/rest/v1/recipes?id=eq.{recipe_id}",
+            headers=SUPABASE_HEADERS
+        )
+
+        if recipe_res.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail="Failed to delete recipe")
+
+    return {"success": True}
+
 # ── Route 3: generate a meal plan using Claude ────────────────────
 @app.post("/generate-plan")
 async def generate_plan():
