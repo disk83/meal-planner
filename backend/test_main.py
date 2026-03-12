@@ -183,3 +183,22 @@ def test_generate_plan_contains_all_four_days():
 
         for day in ["monday", "tuesday", "wednesday", "thursday"]:
             assert day in plan, f"Missing day: {day}"
+
+# ── Recipes (DELETE) ────────────────────────────────────────────────
+
+def test_delete_recipe_returns_success():
+    with patch("main.httpx.AsyncClient") as mock_client:
+        mock_delete_res_links = MagicMock()
+        mock_delete_res_links.status_code = 204
+
+        mock_delete_res_recipe = MagicMock()
+        mock_delete_res_recipe.status_code = 204
+
+        mock_delete = AsyncMock(side_effect=[mock_delete_res_links, mock_delete_res_recipe])
+        mock_client.return_value.__aenter__.return_value.delete = mock_delete
+
+        response = client.delete("/recipes/42")
+
+        assert response.status_code == 200
+        assert response.json() == {"success": True}
+        assert mock_delete.await_count == 2
