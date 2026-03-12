@@ -1,0 +1,15 @@
+# secrets
+backend/.env
+
+# python cache
+__pycache__/
+*.pyc
+
+# mac system files
+.DS_Store
+
+# editor
+.vscode/
+
+# archive
+archive/

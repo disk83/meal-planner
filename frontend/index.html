@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Meal Planner</title>
+  <style>
+    body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 30px; border-bottom: 2px solid #ddd; }
+    .tab { padding: 10px 24px; cursor: pointer; font-size: 15px; border: none; background: none; color: #888; }
+    .tab.active { color: #222; border-bottom: 2px solid #222; margin-bottom: -2px; font-weight: bold; }
+
+    /* Panels */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Meal plan */
+    button { padding: 10px 20px; font-size: 15px; cursor: pointer; margin-top: 10px; }
+    .day { padding: 10px; margin: 5px 0; background: #f5f5f5; border-radius: 4px; }
+    #error { color: red; margin-top: 20px; }
+    #loading { margin-top: 20px; color: #666; }
+
+    /* Recipe list */
+    .recipe-card { border: 1px solid #ddd; border-radius: 6px; padding: 14px 16px; margin-bottom: 12px; }
+    .recipe-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .recipe-card h3 { margin: 0 0 6px 0; font-size: 16px; }
+    .recipe-meta { font-size: 13px; color: #666; margin-bottom: 8px; }
+    .tag { display: inline-block; background: #f0f0f0; border-radius: 3px; padding: 2px 8px; font-size: 12px; margin-right: 4px; }
+    .ingredient-list { font-size: 13px; color: #444; margin: 6px 0 0 0; padding-left: 16px; }
+    .edit-btn { background: none; border: 1px solid #ccc; border-radius: 4px; padding: 4px 12px; font-size: 12px; cursor: pointer; color: #555; margin-top: 0; white-space: nowrap; }
+    .edit-btn:hover { background: #f5f5f5; }
+
+    #add-recipe-btn { background: #222; color: white; border: none; border-radius: 4px; padding: 10px 20px; font-size: 14px; cursor: pointer; margin-bottom: 20px; margin-top: 0; }
+    #recipes-loading { color: #666; font-size: 14px; }
+
+    /* Recipe form */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; }
+    .form-group input[type="text"],
+    .form-group input[type="number"] { width: 100%; padding: 8px; font-size: 14px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tags label { font-weight: normal; display: flex; align-items: center; gap: 4px; font-size: 14px; }
+
+    .ingredient-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .ingredient-row input { flex: 1; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+    .ingredient-row button { padding: 6px 10px; font-size: 18px; margin-top: 0; background: none; border: none; cursor: pointer; color: #999; }
+
+    #add-ingredient-btn { background: none; border: 1px dashed #aaa; color: #555; padding: 6px 14px; border-radius: 4px; cursor: pointer; margin-top: 0; font-size: 13px; }
+    #save-btn { background: #222; color: white; border: none; border-radius: 4px; padding: 10px 24px; font-size: 15px; cursor: pointer; margin-top: 10px; }
+    #cancel-btn { background: none; border: 1px solid #ccc; border-radius: 4px; padding: 10px 24px; font-size: 15px; cursor: pointer; margin-top: 10px; margin-left: 8px; }
+
+    #recipe-success { color: green; margin-top: 12px; display: none; }
+    #recipe-error { color: red; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+  <h1>🍽 Meal Planner</h1>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('planner', this)">This Week</button>
+    <button class="tab" onclick="showTab('recipes', this)">Recipes</button>
+  </div>
+
+  <!-- Planner Tab -->
+  <div id="tab-planner" class="panel active">
+    <p>Click the button to generate this week's dinner plan.</p>
+    <button onclick="generatePlan()">Generate Meal Plan</button>
+    <div id="loading" style="display:none">Thinking...</div>
+    <div id="error"></div>
+    <div id="meal-plan"></div>
+  </div>
+
+  <!-- Recipes Tab -->
+  <div id="tab-recipes" class="panel">
+
+    <!-- List view -->
+    <div id="recipes-list-view">
+      <button id="add-recipe-btn" onclick="showForm()">+ Add Recipe</button>
+      <div id="recipes-loading">Loading recipes...</div>
+      <div id="recipes-container"></div>
+    </div>
+
+    <!-- Add / Edit recipe form (hidden by default) -->
+    <div id="recipes-form-view" style="display:none">
+      <h2 id="form-title">Add a Recipe</h2>
+
+      <div class="form-group">
+        <label>Recipe name</label>
+        <input type="text" id="recipe-name" placeholder="e.g. Salmon with roasted veg">
+      </div>
+
+      <div class="form-group">
+        <label>Tags</label>
+        <div class="tags" id="tags-container">Loading tags...</div>
+      </div>
+
+      <div class="form-group">
+        <label>Prep time (minutes)</label>
+        <input type="number" id="prep-minutes" placeholder="e.g. 30" style="width:120px">
+      </div>
+
+      <div class="form-group">
+        <label>Ingredients</label>
+        <div id="ingredients-list"></div>
+        <button id="add-ingredient-btn" onclick="addIngredient()">+ Add ingredient</button>
+      </div>
+
+      <button id="save-btn" onclick="saveRecipe()">Save Recipe</button>
+      <button id="cancel-btn" onclick="hideForm()">Cancel</button>
+      <div id="recipe-success">✅ Recipe saved!</div>
+      <div id="recipe-error"></div>
+    </div>
+
+  </div>
+
+  <script>
+
+    let currentEditId = null; // null = adding, number = editing
+
+    // ── Tabs ──────────────────────────────────────────────────────
+    function showTab(name, el) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      el.classList.add('active');
+      if (name === 'recipes') loadRecipes();
+    }
+
+    // ── Meal planner ──────────────────────────────────────────────
+    async function generatePlan() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const planDiv = document.getElementById('meal-plan');
+
+      loading.style.display = 'block';
+      error.textContent = '';
+      planDiv.innerHTML = '';
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/generate-plan', { method: 'POST' });
+        const result = await response.json();
+        const plan = JSON.parse(result);
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday'];
+
+        planDiv.innerHTML = '<h2>This week\'s plan:</h2>' +
+          days.map(day =>
+            `<div class="day"><strong>${day.charAt(0).toUpperCase() + day.slice(1)}:</strong> ${plan[day]}</div>`
+          ).join('');
+      } catch (err) {
+        error.textContent = 'Something went wrong: ' + err.message;
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    // ── Recipe list ───────────────────────────────────────────────
+    async function loadRecipes() {
+      const container = document.getElementById('recipes-container');
+      const loadingEl = document.getElementById('recipes-loading');
+
+      loadingEl.style.display = 'block';
+      container.innerHTML = '';
+
+      try {
+        const res = await fetch('http://127.0.0.1:8000/recipes');
+        const recipes = await res.json();
+
+        loadingEl.style.display = 'none';
+
+        if (recipes.length === 0) {
+          container.innerHTML = '<p style="color:#888">No recipes yet. Add one!</p>';
+          return;
+        }
+
+        container.innerHTML = recipes.map(r => {
+          const tags = (r.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+          const prep = r.prep_minutes ? `${r.prep_minutes} mins` : 'No prep time set';
+          const ingredients = (r.recipe_ingredients || [])
+            .map(i => `<li>${i.ingredients.name} — ${i.quantity}</li>`)
+            .join('');
+
+          return `
+            <div class="recipe-card">
+              <div class="recipe-card-header">
+                <h3>${r.name}</h3>
+                <button class="edit-btn" onclick="editRecipe(${r.id})">Edit</button>
+              </div>
+              <div class="recipe-meta">${prep} &nbsp;|&nbsp; ${tags || 'no tags'}</div>
+              ${ingredients ? `<ul class="ingredient-list">${ingredients}</ul>` : ''}
+            </div>`;
+        }).join('');
+
+      } catch (err) {
+        loadingEl.style.display = 'none';
+        container.innerHTML = `<p style="color:red">Failed to load recipes: ${err.message}</p>`;
+      }
+    }
+
+    // ── Show/hide form ────────────────────────────────────────────
+    async function showForm() {
+      currentEditId = null;
+      document.getElementById('form-title').textContent = 'Add a Recipe';
+      document.getElementById('recipe-name').value = '';
+      document.getElementById('prep-minutes').value = '';
+      document.getElementById('recipe-error').textContent = '';
+      document.getElementById('recipe-success').style.display = 'none';
+      resetIngredients();
+      await loadTags();
+      document.getElementById('recipes-list-view').style.display = 'none';
+      document.getElementById('recipes-form-view').style.display = 'block';
+    }
+
+    async function editRecipe(id) {
+      currentEditId = id;
+      document.getElementById('form-title').textContent = 'Edit Recipe';
+      document.getElementById('recipe-error').textContent = '';
+      document.getElementById('recipe-success').style.display = 'none';
+
+      // Load tags first, then populate
+      await loadTags();
+
+      const res = await fetch(`http://127.0.0.1:8000/recipes/${id}`);
+      const recipe = await res.json();
+
+      document.getElementById('recipe-name').value = recipe.name;
+      document.getElementById('prep-minutes').value = recipe.prep_minutes || '';
+
+      // Check the right tag boxes
+      document.querySelectorAll('#tags-container input').forEach(cb => {
+        cb.checked = (recipe.tags || []).includes(cb.value);
+      });
+
+      // Populate ingredients
+      document.getElementById('ingredients-list').innerHTML = '';
+      (recipe.recipe_ingredients || []).forEach(i => {
+        addIngredient(i.ingredients.name, i.quantity);
+      });
+      if (!recipe.recipe_ingredients || recipe.recipe_ingredients.length === 0) {
+        addIngredient();
+      }
+
+      document.getElementById('recipes-list-view').style.display = 'none';
+      document.getElementById('recipes-form-view').style.display = 'block';
+    }
+
+    function hideForm() {
+      document.getElementById('recipes-form-view').style.display = 'none';
+      document.getElementById('recipes-list-view').style.display = 'block';
+    }
+
+    function resetIngredients() {
+      document.getElementById('ingredients-list').innerHTML = '';
+      addIngredient();
+    }
+
+    // ── Ingredients ───────────────────────────────────────────────
+    function addIngredient(name = '', quantity = '') {
+      const row = document.createElement('div');
+      row.className = 'ingredient-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Ingredient name (e.g. garlic)" value="${name}">
+        <input type="text" placeholder="Quantity (e.g. 2 cloves)" value="${quantity}">
+        <button onclick="removeIngredient(this)">×</button>
+      `;
+      document.getElementById('ingredients-list').appendChild(row);
+    }
+
+    function removeIngredient(btn) {
+      const rows = document.querySelectorAll('.ingredient-row');
+      if (rows.length > 1) btn.parentElement.remove();
+    }
+
+    // ── Save (create or update) recipe ────────────────────────────
+    async function saveRecipe() {
+      const name = document.getElementById('recipe-name').value.trim();
+      const prepRaw = document.getElementById('prep-minutes').value;
+      const tags = [...document.querySelectorAll('#tags-container input:checked')].map(cb => cb.value);
+
+      const ingredientRows = document.querySelectorAll('.ingredient-row');
+      const ingredients = [...ingredientRows].map(row => {
+        const inputs = row.querySelectorAll('input');
+        return { name: inputs[0].value.trim(), quantity: inputs[1].value.trim() };
+      }).filter(i => i.name !== '');
+
+      const errorDiv = document.getElementById('recipe-error');
+      const successDiv = document.getElementById('recipe-success');
+      errorDiv.textContent = '';
+      successDiv.style.display = 'none';
+
+      if (!name) { errorDiv.textContent = 'Please enter a recipe name.'; return; }
+      if (ingredients.length === 0) { errorDiv.textContent = 'Please add at least one ingredient.'; return; }
+
+      const payload = {
+        name, tags,
+        prep_minutes: prepRaw ? parseInt(prepRaw) : null,
+        ingredients
+      };
+
+      try {
+        const url = currentEditId
+          ? `http://127.0.0.1:8000/recipes/${currentEditId}`
+          : 'http://127.0.0.1:8000/recipes';
+        const method = currentEditId ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('Server error');
+
+        successDiv.style.display = 'block';
+        setTimeout(() => {
+          successDiv.style.display = 'none';
+          hideForm();
+          loadRecipes();
+        }, 1500);
+
+      } catch (err) {
+        errorDiv.textContent = 'Failed to save recipe: ' + err.message;
+      }
+    }
+
+    // ── Load tags ─────────────────────────────────────────────────
+    async function loadTags() {
+      const res = await fetch('http://127.0.0.1:8000/tags');
+      const tags = await res.json();
+      document.getElementById('tags-container').innerHTML = tags.map(tag =>
+        `<label><input type="checkbox" value="${tag}"> ${tag.charAt(0).toUpperCase() + tag.slice(1)}</label>`
+      ).join('');
+    }
+
+  </script>
+
+</body>
+</html>
