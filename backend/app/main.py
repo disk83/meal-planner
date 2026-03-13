@@ -21,8 +21,8 @@ SUPABASE_HEADERS = {
     "Content-Type": "application/json"
 }
 
-BASE_DIR = Path(__file__).resolve().parent
-FRONTEND_DIR = BASE_DIR.parent / "frontend"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
