@@ -202,3 +202,27 @@ def test_delete_recipe_returns_success():
         assert response.status_code == 200
         assert response.json() == {"success": True}
         assert mock_delete.await_count == 2
+
+
+def test_delete_nonexistent_recipe_returns_404():
+    with patch("main.httpx.AsyncClient") as mock_client:
+
+        # First delete: recipe_ingredients
+        mock_delete_res_links = MagicMock()
+        mock_delete_res_links.status_code = 204
+
+        # Second delete: recipes table (no rows deleted)
+        mock_delete_res_recipe = MagicMock()
+        mock_delete_res_recipe.status_code = 200
+        mock_delete_res_recipe.json.return_value = []
+
+        mock_delete = AsyncMock(
+            side_effect=[mock_delete_res_links, mock_delete_res_recipe]
+        )
+
+        mock_client.return_value.__aenter__.return_value.delete = mock_delete
+
+        response = client.delete("/recipes/999")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Recipe not found"

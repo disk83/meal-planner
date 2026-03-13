@@ -2,6 +2,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import HTTPException
 from dotenv import load_dotenv
 from pydantic import BaseModel
 import httpx
@@ -193,21 +194,38 @@ async def delete_recipe(recipe_id: int):
     async with httpx.AsyncClient() as client:
 
         # 1. Delete ingredient links
-        await client.delete(
+        ingredients_res = await client.delete(
             f"{SUPABASE_URL}/rest/v1/recipe_ingredients?recipe_id=eq.{recipe_id}",
             headers=SUPABASE_HEADERS
         )
-    
-        # 2. Delete the recipe itself
+
+        if ingredients_res.status_code not in [200, 204]:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to delete recipe ingredients"
+            )
+
+        # 2. Delete the recipe itself, returning deleted row(s)
+        recipe_delete_headers = {
+            **SUPABASE_HEADERS,
+            "Prefer": "return=representation"
+        }
+
         recipe_res = await client.delete(
             f"{SUPABASE_URL}/rest/v1/recipes?id=eq.{recipe_id}",
-            headers=SUPABASE_HEADERS
+            headers=recipe_delete_headers
         )
 
         if recipe_res.status_code not in [200, 204]:
             raise HTTPException(status_code=500, detail="Failed to delete recipe")
 
+        deleted_recipes = recipe_res.json() if recipe_res.status_code == 200 else []
+
+        if not deleted_recipes:
+            raise HTTPException(status_code=404, detail="Recipe not found")
+
     return {"success": True}
+
 
 # ── Route 3: generate a meal plan using Claude ────────────────────
 @app.post("/generate-plan")
