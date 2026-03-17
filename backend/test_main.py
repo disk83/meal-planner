@@ -27,6 +27,13 @@ def test_get_tags_includes_fish():
     response = client.get("/tags")
     assert "fish" in response.json()
 
+# ── Recipes (healthcheck) ─────────────────────────────────────────────────
+def test_health_returns_200():
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
 
 # ── Recipes (GET) ─────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import FRONTEND_DIR
-from app.routers import frontend, meal_plan, recipes, tags
+from app.routers import frontend, health, meal_plan, recipes, tags
 
 app = FastAPI()
 
@@ -17,6 +17,7 @@ app.add_middleware(
 )
 
 app.include_router(frontend.router)
+app.include_router(health.router)
 app.include_router(tags.router)
 app.include_router(recipes.router)
 app.include_router(meal_plan.router)
