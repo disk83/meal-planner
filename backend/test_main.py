@@ -34,7 +34,7 @@ def test_get_recipes_returns_200():
     mock_recipes = [
         {"id": 1, "name": "Salmon pasta", "tags": ["fish", "pasta"], "prep_minutes": 30, "recipe_ingredients": []}
     ]
-    with patch("app.main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_recipes
         mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
@@ -44,7 +44,7 @@ def test_get_recipes_returns_200():
 
 def test_get_recipes_returns_a_list():
     mock_recipes = []
-    with patch("app.main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_recipes
         mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
@@ -63,7 +63,7 @@ def test_create_recipe_returns_success():
         "ingredients": [{"name": "salmon fillet", "quantity": "200g"}]
     }
 
-    with patch("app.main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         # Mock recipe insert
         mock_recipe_res = MagicMock()
         mock_recipe_res.status_code = 201
@@ -91,7 +91,7 @@ def test_create_recipe_returns_recipe_id():
         "ingredients": [{"name": "tuna", "quantity": "1 tin"}]
     }
 
-    with patch("app.main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         mock_recipe_res = MagicMock()
         mock_recipe_res.status_code = 201
         mock_recipe_res.json.return_value = [{"id": 99}]
@@ -134,7 +134,7 @@ def test_generate_plan_returns_200():
         "thursday": "Veggie soup"
     })
 
-    with patch("app.main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_recipes_res = MagicMock()
         mock_recipes_res.json.return_value = mock_recipes
 
@@ -165,7 +165,7 @@ def test_generate_plan_contains_all_four_days():
         "thursday": "Veggie soup"
     })
 
-    with patch("app.main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_recipes_res = MagicMock()
         mock_recipes_res.json.return_value = mock_recipes
 
@@ -187,7 +187,7 @@ def test_generate_plan_contains_all_four_days():
 # ── Recipes (DELETE) ────────────────────────────────────────────────
 
 def test_delete_recipe_returns_success():
-    with patch("app.main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         mock_api = mock_client.return_value.__aenter__.return_value
 
         mock_delete_res_links = MagicMock()
@@ -208,7 +208,7 @@ def test_delete_recipe_returns_success():
 
 
 def test_delete_nonexistent_recipe_returns_404():
-    with patch("app.main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         mock_api = mock_client.return_value.__aenter__.return_value
 
         mock_delete_res_links = MagicMock()
