@@ -1,61 +1,210 @@
 # AGENTS.md
 
-## Project purpose
-This is a learning project to build an AI-assisted meal planner web app.
+## 1. Project purpose
 
-The app currently:
-- uses a FastAPI backend
-- uses a simple HTML frontend
-- stores recipe data in Supabase
-- calls Claude to generate a weekly meal plan
-- supports adding and editing recipes
-- is still MVP-level and intentionally simple
+This is a learning project to build an AI-driven meal planner web app.
 
-## Main development goal
-The main goal is learning AI-assisted software development step by step.
+Current characteristics:
+- FastAPI backend (Python)
+- Simple HTML frontend
+- Supabase database
+- AI-generated weekly meal plans
+- MVP-level, intentionally simple
 
-This is not a production system yet.
-Prioritize clarity, small changes, and preserving working behavior.
+Primary goal:
+Learn AI-assisted and agent-driven software development step by step.
 
-## Current structure
-- `backend/main.py` contains the main FastAPI backend logic
-- `backend/test_main.py` contains early test code
-- `frontend/index.html` contains the frontend
-- `requirements.txt` contains Python dependencies
-- `.env` is local only and must never be committed
+This is NOT a production system.
+Clarity, safety, and learning are more important than speed or complexity.
 
-## Rules for making changes
-1. Prefer small, incremental changes
-2. Do not refactor large parts of the project unless explicitly asked
-3. Preserve current working MVP behavior
-4. Explain proposed changes clearly
-5. Keep solutions simple and beginner-friendly
-6. Do not introduce unnecessary frameworks or abstractions
-7. Never commit secrets or API keys
-8. Prefer changes that help learning and understanding
+---
 
-## Coding guidelines
-- Keep the current FastAPI + simple frontend structure unless asked otherwise
-- Keep backend changes minimal and readable
-- Reuse existing patterns in `main.py` where reasonable
-- When adding a feature, avoid changing unrelated code
-- If a feature needs both backend and frontend work, keep each change small and clearly scoped
+## 2. Development philosophy
 
-## Testing
-- If possible, propose or add a simple test for the changed behavior
-- Do not invent a large test framework unless explicitly asked
-- Prefer lightweight validation suitable for an MVP
+Always prioritize:
+- small, incremental changes
+- readability and simplicity
+- preserving working behavior
+- easy human review
 
-## Preferred workflow
-When working on a change:
-1. read the relevant files
-2. make the smallest useful change
-3. review the change for simplicity and safety
-4. run available tests if practical
-5. prepare the change for review in a PR
+Avoid:
+- large refactors unless explicitly requested
+- introducing heavy frameworks
+- mixing unrelated changes
+- “clever” or over-engineered solutions
 
-## Current likely priorities
-- add recipe deletion
-- improve ingredient management
-- improve meal generation logic
-- gradually improve structure without large rewrites
+---
+
+## 3. Current architecture
+
+Backend structure:
+
+- `backend/app/main.py` → FastAPI app entrypoint
+- `backend/app/routers/` → API endpoints grouped by domain
+  - frontend
+  - recipes
+  - meal_plan
+  - tags
+  - health
+- `backend/app/services/` → business logic
+- `backend/test_main.py` → pytest tests
+
+Frontend:
+- `frontend/index.html`
+
+General rules:
+- routers = HTTP layer
+- services = logic layer
+- keep separation clear when possible
+
+---
+
+## 4. Git and workflow rules (CRITICAL)
+
+The `main` branch is the single source of truth and must remain stable.
+
+MANDATORY rules:
+- NEVER commit directly to `main`
+- ALWAYS use a feature branch
+- ALWAYS open a Pull Request
+- CI must pass before merge
+
+Workflow:
+1. create branch
+2. implement change
+3. run tests
+4. commit
+5. push
+6. open PR
+7. CI runs
+8. human reviews
+9. merge
+
+Branch naming:
+- `feature/<description>`
+- `fix/<description>`
+- `refactor/<description>`
+
+Examples:
+- `feature/add-ping-endpoint`
+- `fix/delete-nonexistent-recipe-404`
+
+---
+
+## 5. Testing and validation
+
+Tests are required for meaningful changes.
+
+- Use pytest (`backend/test_main.py`)
+- If adding behavior → add or update tests
+- If modifying behavior → ensure existing tests still pass
+
+Before PR:
+- run tests locally if possible
+- do not claim completion without validation
+
+---
+
+## 6. API and coding conventions
+
+- Follow existing FastAPI patterns
+- Keep endpoints consistent with current routers
+- Avoid putting business logic in routers
+- Prefer explicit and readable code
+
+When adding functionality:
+- extend existing routers when appropriate
+- use services for logic reuse
+- avoid duplicating logic
+
+---
+
+## 7. Refactoring rules
+
+Refactoring is allowed ONLY if:
+- it improves clarity, OR
+- it is required for the requested change
+
+Rules:
+- preserve behavior unless explicitly changing it
+- keep refactors small and isolated
+- do not refactor unrelated areas
+
+If a refactor is optional → suggest it, do not include it automatically
+
+---
+
+## 8. Agent operating protocol
+
+When performing a task, follow this sequence:
+
+1. Understand the request
+2. Inspect relevant files
+3. Identify smallest safe change
+4. Implement change
+5. Add/update tests
+6. Run tests
+7. Prepare PR
+
+Agents must prefer:
+- minimal diffs
+- safe changes
+- easy review
+
+---
+
+## 9. Definition of done
+
+A change is complete ONLY if:
+- requested behavior works
+- tests pass
+- no unintended behavior is broken
+- PR is clear and reviewable
+
+---
+
+## 10. Safe vs unsafe actions
+
+Safe actions:
+- create feature branches
+- edit Python files
+- add small files
+- update tests
+- open PRs
+
+Use caution:
+- modifying project structure
+- adding dependencies
+- renaming files
+- deleting code
+
+Unsafe (never do unless explicitly asked):
+- commit directly to `main`
+- disable tests
+- bypass CI
+- large unrelated refactors
+- modify secrets or environment config
+
+---
+
+## 11. If uncertain
+
+If unsure:
+- choose the simplest implementation
+- do NOT guess hidden requirements
+- document assumptions in PR
+- ask for clarification instead of overbuilding
+
+---
+
+## 12. Project evolution context
+
+This project is evolving toward agent-driven development.
+
+Current preferences:
+- transparency over automation
+- human review before merge
+- browser/GitHub-friendly workflow
+- minimal local tooling
+
+Agents should act conservatively and support this transition.
