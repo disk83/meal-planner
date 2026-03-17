@@ -5,10 +5,10 @@ import pytest
 import sys
 import os
 
-# Make sure Python can find main.py
+# Make sure Python can find backend.app.main.py
 sys.path.insert(0, os.path.dirname(__file__))
 
-from main import app
+from app.main import app
 
 client = TestClient(app)
 
@@ -34,7 +34,7 @@ def test_get_recipes_returns_200():
     mock_recipes = [
         {"id": 1, "name": "Salmon pasta", "tags": ["fish", "pasta"], "prep_minutes": 30, "recipe_ingredients": []}
     ]
-    with patch("main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_recipes
         mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
@@ -44,7 +44,7 @@ def test_get_recipes_returns_200():
 
 def test_get_recipes_returns_a_list():
     mock_recipes = []
-    with patch("main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
         mock_response.json.return_value = mock_recipes
         mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
@@ -63,7 +63,7 @@ def test_create_recipe_returns_success():
         "ingredients": [{"name": "salmon fillet", "quantity": "200g"}]
     }
 
-    with patch("main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         # Mock recipe insert
         mock_recipe_res = MagicMock()
         mock_recipe_res.status_code = 201
@@ -91,7 +91,7 @@ def test_create_recipe_returns_recipe_id():
         "ingredients": [{"name": "tuna", "quantity": "1 tin"}]
     }
 
-    with patch("main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
         mock_recipe_res = MagicMock()
         mock_recipe_res.status_code = 201
         mock_recipe_res.json.return_value = [{"id": 99}]
@@ -134,7 +134,7 @@ def test_generate_plan_returns_200():
         "thursday": "Veggie soup"
     })
 
-    with patch("main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_recipes_res = MagicMock()
         mock_recipes_res.json.return_value = mock_recipes
 
@@ -165,7 +165,7 @@ def test_generate_plan_contains_all_four_days():
         "thursday": "Veggie soup"
     })
 
-    with patch("main.httpx.AsyncClient") as mock_client:
+    with patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_recipes_res = MagicMock()
         mock_recipes_res.json.return_value = mock_recipes
 
@@ -183,3 +183,46 @@ def test_generate_plan_contains_all_four_days():
 
         for day in ["monday", "tuesday", "wednesday", "thursday"]:
             assert day in plan, f"Missing day: {day}"
+
+# ── Recipes (DELETE) ────────────────────────────────────────────────
+
+def test_delete_recipe_returns_success():
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
+        mock_api = mock_client.return_value.__aenter__.return_value
+
+        mock_delete_res_links = MagicMock()
+        mock_delete_res_links.status_code = 204
+
+        mock_delete_res_recipe = MagicMock()
+        mock_delete_res_recipe.status_code = 200
+        mock_delete_res_recipe.json.return_value = [{"id": 42}]
+
+        mock_api.delete = AsyncMock(
+            side_effect=[mock_delete_res_links, mock_delete_res_recipe]
+        )
+
+        response = client.delete("/recipes/42")
+
+        assert response.status_code == 200
+        assert response.json() == {"success": True}
+
+
+def test_delete_nonexistent_recipe_returns_404():
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
+        mock_api = mock_client.return_value.__aenter__.return_value
+
+        mock_delete_res_links = MagicMock()
+        mock_delete_res_links.status_code = 204
+
+        mock_delete_res_recipe = MagicMock()
+        mock_delete_res_recipe.status_code = 200
+        mock_delete_res_recipe.json.return_value = []
+
+        mock_api.delete = AsyncMock(
+            side_effect=[mock_delete_res_links, mock_delete_res_recipe]
+        )
+
+        response = client.delete("/recipes/999")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Recipe not found"
