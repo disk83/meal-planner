@@ -108,6 +108,7 @@ Do not skip validation.
 Do not bypass PR review.
 Do not mix unrelated cleanup into the same change.
 Before proposing exact code changes, inspect the target files that will be modified
+If the task asks for exact paste-ready code, inspect the target files first; otherwise clearly state that the result is a proposed patch and not exact repo-verified code
 
 ---
 
@@ -369,6 +370,7 @@ PRs should be concise, explicit, and easy to review.
 ## 19. Commit message style
 
 Use simple, clear commit messages.
+- commit messages must reflect the actual change performed, not the original request
 
 Examples:
 - `Add /ping endpoint with UTC timestamp`
