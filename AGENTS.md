@@ -107,6 +107,7 @@ For any requested change, follow this sequence:
 Do not skip validation.
 Do not bypass PR review.
 Do not mix unrelated cleanup into the same change.
+Before proposing exact code changes, inspect the target files that will be modified
 
 ---
 
@@ -190,6 +191,11 @@ Preferred rules:
 - match the style of existing tests
 - add or update tests for new behavior
 - do not remove tests unless explicitly requested and justified
+- always inspect existing tests and follow the same patterns (e.g. how TestClient is created)
+- do not introduce new pytest fixtures (e.g. `client`) unless they already exist in the codebase
+- prefer copying an existing test pattern over inventing a new one
+- when giving exact test code, first inspect the existing test file and match its pattern
+- if the existing test file was not inspected, do not assume fixtures or local test helpers; state the assumption explicitly
 
 At minimum:
 - new endpoint → add endpoint tests
@@ -202,6 +208,8 @@ If tests cannot be run:
 - say so explicitly
 - explain why
 - do not pretend validation happened
+
+
 
 ---
 

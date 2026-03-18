@@ -27,12 +27,29 @@ def test_get_tags_includes_fish():
     response = client.get("/tags")
     assert "fish" in response.json()
 
-# ── Recipes (healthcheck) ─────────────────────────────────────────────────
+# ── health ─────────────────────────────────────────────────
 def test_health_returns_200():
     response = client.get("/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+# ── ping ────────────────────────────────────────────────
+
+def test_ping_returns_200(client):
+    response = client.get("/ping")
+    assert response.status_code == 200
+
+
+def test_ping_returns_status_ok_and_timestamp(client):
+    response = client.get("/ping")
+    data = response.json()
+
+    assert data["status"] == "ok"
+    assert "timestamp" in data
+
+    from datetime import datetime
+    datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00"))
 
 
 # ── Recipes (GET) ─────────────────────────────────────────────────
@@ -233,3 +250,5 @@ def test_delete_nonexistent_recipe_returns_404():
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Recipe not found"
+
+
