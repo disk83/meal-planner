@@ -10,7 +10,7 @@ async def health():
 
 
 @router.get("/ping")
-async def ping():
+def ping():
     return {
         "status": "ok",
         "timestamp": datetime.now(UTC).isoformat(),

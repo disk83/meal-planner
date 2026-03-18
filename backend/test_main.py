@@ -36,12 +36,12 @@ def test_health_returns_200():
 
 # ── ping ────────────────────────────────────────────────
 
-def test_ping_returns_200(client):
+def test_ping_returns_200():
     response = client.get("/ping")
     assert response.status_code == 200
 
 
-def test_ping_returns_status_ok_and_timestamp(client):
+def test_ping_returns_status_ok_and_timestamp():
     response = client.get("/ping")
     data = response.json()
 
