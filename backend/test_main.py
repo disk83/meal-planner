@@ -47,11 +47,12 @@ def test_ping_returns_200():
     assert response.status_code == 200
 
 
-def test_ping_returns_status_ok_and_timestamp():
+def test_ping_returns_status_ok_timestamp_and_message():
     response = client.get("/ping")
     data = response.json()
 
     assert data["status"] == "ok"
+    assert data["message"] == "pong"
     assert "timestamp" in data
 
     from datetime import datetime

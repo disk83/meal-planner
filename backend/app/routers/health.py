@@ -15,6 +15,7 @@ def ping():
     return {
         "status": "ok",
         "timestamp": datetime.now(UTC).isoformat(),
+        "message": "pong",
     }
 
 @router.get("/version")
