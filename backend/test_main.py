@@ -52,6 +52,25 @@ def test_ping_returns_status_ok_and_timestamp():
     datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00"))
 
 
+
+# ── version ────────────────────────────────────────────────
+
+def test_version_returns_200():
+    response = client.get("/version")
+    assert response.status_code == 200
+
+
+def test_version_returns_expected_payload():
+    response = client.get("/version")
+    data = response.json()
+
+    assert data["version"] == "0.1"
+    assert "timestamp" in data
+
+    from datetime import datetime
+    datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00"))
+
+
 # ── Recipes (GET) ─────────────────────────────────────────────────
 
 def test_get_recipes_returns_200():
