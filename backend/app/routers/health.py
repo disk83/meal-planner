@@ -1,11 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from datetime import datetime, UTC
 
 router = APIRouter()
 
 
 @router.get("/health")
-async def health():
+async def health(response: Response):
+    response.headers["X-Service-Name"] = "meal-planner"
     return {"status": "ok"}
 
 

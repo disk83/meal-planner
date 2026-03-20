@@ -34,6 +34,12 @@ def test_health_returns_200():
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
+
+def test_health_includes_service_name_header():
+    response = client.get("/health")
+
+    assert response.headers["X-Service-Name"] == "meal-planner"
+
 # ── ping ────────────────────────────────────────────────
 
 def test_ping_returns_200():
