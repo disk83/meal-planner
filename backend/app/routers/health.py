@@ -15,3 +15,10 @@ def ping():
         "status": "ok",
         "timestamp": datetime.now(UTC).isoformat(),
     }
+
+@router.get("/version")
+def version():
+    return {
+        "version": "0.1",
+        "timestamp": datetime.now(UTC).isoformat(),
+    }
