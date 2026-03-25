@@ -117,6 +117,52 @@ pytest test_main.py
 ```
 
 ---
+## Deploy backend on Render
+
+Use a **Render Web Service** for the FastAPI backend only. The frontend still contains local development API URLs, so this deployment step is intended to expose the backend API first and validate it with `/health`.
+
+### Render service settings
+
+* **Root directory:** `backend`
+* **Build command:** `pip install -r requirements.txt`
+* **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+The `backend` directory is the correct Render root because it contains the FastAPI app package, the backend-only dependency file, and the existing test entrypoint.
+
+### Required environment variables
+
+The backend already reads runtime configuration from environment variables in `backend/app/config.py`. Set these in the Render dashboard:
+
+* `SUPABASE_URL`
+* `SUPABASE_ANON_KEY`
+* `ANTHROPIC_API_KEY`
+
+Do not commit these values to the repository.
+
+### Validate the deployment
+
+After the first deploy completes, open:
+
+```text
+https://<your-render-service>.onrender.com/health
+```
+
+Expected response:
+
+```json
+{"status": "ok"}
+```
+
+If you want to confirm the same setup locally with a production-style command, run:
+
+```bash
+cd backend
+PORT=8000 uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+Then visit `http://127.0.0.1:8000/health`.
+
+---
 
 ## Development Workflow
 
