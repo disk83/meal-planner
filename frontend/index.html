@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Meal Planner</title>
+  <title>Planificador de comidas</title>
   <style>
     body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
 
@@ -57,18 +57,18 @@
 </head>
 <body>
 
-  <h1>🍽 Meal Planner</h1>
+  <h1>🍽 Planificador de comidas</h1>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('planner', this)">This Week</button>
-    <button class="tab" onclick="showTab('recipes', this)">Recipes</button>
+    <button class="tab active" onclick="showTab('planner', this)">Esta semana</button>
+    <button class="tab" onclick="showTab('recipes', this)">Recetas</button>
   </div>
 
   <!-- Planner Tab -->
   <div id="tab-planner" class="panel active">
-    <p>Click the button to generate this week's dinner plan.</p>
-    <button onclick="generatePlan()">Generate Meal Plan</button>
-    <div id="loading" style="display:none">Thinking...</div>
+    <p>Haz clic en el botón para generar el plan de cenas de esta semana.</p>
+    <button onclick="generatePlan()">Generar plan semanal</button>
+    <div id="loading" style="display:none">Pensando...</div>
     <div id="error"></div>
     <div id="meal-plan"></div>
   </div>
@@ -78,39 +78,39 @@
 
     <!-- List view -->
     <div id="recipes-list-view">
-      <button id="add-recipe-btn" onclick="showForm()">+ Add Recipe</button>
-      <div id="recipes-loading">Loading recipes...</div>
+      <button id="add-recipe-btn" onclick="showForm()">+ Añadir receta</button>
+      <div id="recipes-loading">Cargando recetas...</div>
       <div id="recipes-container"></div>
     </div>
 
     <!-- Add / Edit recipe form (hidden by default) -->
     <div id="recipes-form-view" style="display:none">
-      <h2 id="form-title">Add a Recipe</h2>
+      <h2 id="form-title">Añadir una receta</h2>
 
       <div class="form-group">
-        <label>Recipe name</label>
-        <input type="text" id="recipe-name" placeholder="e.g. Salmon with roasted veg">
+        <label>Nombre de la receta</label>
+        <input type="text" id="recipe-name" placeholder="p. ej., salmón con verduras asadas">
       </div>
 
       <div class="form-group">
-        <label>Tags</label>
-        <div class="tags" id="tags-container">Loading tags...</div>
+        <label>Etiquetas</label>
+        <div class="tags" id="tags-container">Cargando etiquetas...</div>
       </div>
 
       <div class="form-group">
-        <label>Prep time (minutes)</label>
-        <input type="number" id="prep-minutes" placeholder="e.g. 30" style="width:120px">
+        <label>Tiempo de preparación (minutos)</label>
+        <input type="number" id="prep-minutes" placeholder="p. ej., 30" style="width:120px">
       </div>
 
       <div class="form-group">
-        <label>Ingredients</label>
+        <label>Ingredientes</label>
         <div id="ingredients-list"></div>
-        <button id="add-ingredient-btn" onclick="addIngredient()">+ Add ingredient</button>
+        <button id="add-ingredient-btn" onclick="addIngredient()">+ Añadir ingrediente</button>
       </div>
 
-      <button id="save-btn" onclick="saveRecipe()">Save Recipe</button>
-      <button id="cancel-btn" onclick="hideForm()">Cancel</button>
-      <div id="recipe-success">✅ Recipe saved!</div>
+      <button id="save-btn" onclick="saveRecipe()">Guardar receta</button>
+      <button id="cancel-btn" onclick="hideForm()">Cancelar</button>
+      <div id="recipe-success">✅ ¡Receta guardada!</div>
       <div id="recipe-error"></div>
     </div>
 
@@ -158,13 +158,19 @@
         const result = await response.json();
         const plan = JSON.parse(result);
         const days = ['monday', 'tuesday', 'wednesday', 'thursday'];
+        const dayLabels = {
+          monday: 'Lunes',
+          tuesday: 'Martes',
+          wednesday: 'Miércoles',
+          thursday: 'Jueves'
+        };
 
-        planDiv.innerHTML = '<h2>This week\'s plan:</h2>' +
+        planDiv.innerHTML = '<h2>Plan de esta semana:</h2>' +
           days.map(day =>
-            `<div class="day"><strong>${day.charAt(0).toUpperCase() + day.slice(1)}:</strong> ${plan[day]}</div>`
+            `<div class="day"><strong>${dayLabels[day]}:</strong> ${plan[day]}</div>`
           ).join('');
       } catch (err) {
-        error.textContent = 'Something went wrong: ' + err.message;
+        error.textContent = 'Algo salió mal: ' + err.message;
       } finally {
         loading.style.display = 'none';
       }
@@ -185,13 +191,13 @@
         loadingEl.style.display = 'none';
 
         if (recipes.length === 0) {
-          container.innerHTML = '<p style="color:#888">No recipes yet. Add one!</p>';
+          container.innerHTML = '<p style="color:#888">Aún no hay recetas. ¡Añade una!</p>';
           return;
         }
 
         container.innerHTML = recipes.map(r => {
           const tags = (r.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
-          const prep = r.prep_minutes ? `${r.prep_minutes} mins` : 'No prep time set';
+          const prep = r.prep_minutes ? `${r.prep_minutes} min` : 'Tiempo de preparación no definido';
           const ingredients = (r.recipe_ingredients || [])
             .map(i => `<li>${i.ingredients.name} — ${i.quantity}</li>`)
             .join('');
@@ -200,23 +206,23 @@
             <div class="recipe-card">
               <div class="recipe-card-header">
                 <h3>${r.name}</h3>
-                <button class="edit-btn" onclick="editRecipe(${r.id})">Edit</button>
+                <button class="edit-btn" onclick="editRecipe(${r.id})">Editar</button>
               </div>
-              <div class="recipe-meta">${prep} &nbsp;|&nbsp; ${tags || 'no tags'}</div>
+              <div class="recipe-meta">${prep} &nbsp;|&nbsp; ${tags || 'sin etiquetas'}</div>
               ${ingredients ? `<ul class="ingredient-list">${ingredients}</ul>` : ''}
             </div>`;
         }).join('');
 
       } catch (err) {
         loadingEl.style.display = 'none';
-        container.innerHTML = `<p style="color:red">Failed to load recipes: ${err.message}</p>`;
+        container.innerHTML = `<p style="color:red">No se pudieron cargar las recetas: ${err.message}</p>`;
       }
     }
 
     // ── Show/hide form ────────────────────────────────────────────
     async function showForm() {
       currentEditId = null;
-      document.getElementById('form-title').textContent = 'Add a Recipe';
+      document.getElementById('form-title').textContent = 'Añadir una receta';
       document.getElementById('recipe-name').value = '';
       document.getElementById('prep-minutes').value = '';
       document.getElementById('recipe-error').textContent = '';
@@ -229,7 +235,7 @@
 
     async function editRecipe(id) {
       currentEditId = id;
-      document.getElementById('form-title').textContent = 'Edit Recipe';
+      document.getElementById('form-title').textContent = 'Editar receta';
       document.getElementById('recipe-error').textContent = '';
       document.getElementById('recipe-success').style.display = 'none';
 
@@ -275,8 +281,8 @@
       const row = document.createElement('div');
       row.className = 'ingredient-row';
       row.innerHTML = `
-        <input type="text" placeholder="Ingredient name (e.g. garlic)" value="${name}">
-        <input type="text" placeholder="Quantity (e.g. 2 cloves)" value="${quantity}">
+        <input type="text" placeholder="Nombre del ingrediente (p. ej., ajo)" value="${name}">
+        <input type="text" placeholder="Cantidad (p. ej., 2 dientes)" value="${quantity}">
         <button onclick="removeIngredient(this)">×</button>
       `;
       document.getElementById('ingredients-list').appendChild(row);
@@ -304,8 +310,8 @@
       errorDiv.textContent = '';
       successDiv.style.display = 'none';
 
-      if (!name) { errorDiv.textContent = 'Please enter a recipe name.'; return; }
-      if (ingredients.length === 0) { errorDiv.textContent = 'Please add at least one ingredient.'; return; }
+      if (!name) { errorDiv.textContent = 'Por favor, introduce un nombre de receta.'; return; }
+      if (ingredients.length === 0) { errorDiv.textContent = 'Por favor, añade al menos un ingrediente.'; return; }
 
       const payload = {
         name, tags,
@@ -325,7 +331,7 @@
           body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error('Server error');
+        if (!response.ok) throw new Error('Error del servidor');
 
         successDiv.style.display = 'block';
         setTimeout(() => {
@@ -335,7 +341,7 @@
         }, 1500);
 
       } catch (err) {
-        errorDiv.textContent = 'Failed to save recipe: ' + err.message;
+        errorDiv.textContent = 'No se pudo guardar la receta: ' + err.message;
       }
     }
 
