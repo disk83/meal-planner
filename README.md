@@ -232,3 +232,10 @@ It serves as a playground to:
 * understand how AI can contribute to real codebases
 
 ---
+
+## Architecture
+frontend repo/app deploys to Vercel on push to main
+backend repo/app deploys to Render on push to main (vercel has only limited capability for fastAPI)
+frontend calls deployed backend URL
+backend uses Supabase credentials via environment variables
+production is auto-updated from main
