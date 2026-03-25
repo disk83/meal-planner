@@ -120,6 +120,20 @@
 
     let currentEditId = null; // null = adding, number = editing
 
+    const BACKEND_CONFIG = {
+      local: 'http://127.0.0.1:8000',
+      production: 'https://meal-planner-igpk.onrender.com'
+    };
+
+    const BACKEND_BASE_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? BACKEND_CONFIG.local
+      : BACKEND_CONFIG.production;
+
+    function apiUrl(path) {
+      return `${BACKEND_BASE_URL}${path}`;
+    }
+
+
     // ── Tabs ──────────────────────────────────────────────────────
     function showTab(name, el) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -140,7 +154,7 @@
       planDiv.innerHTML = '';
 
       try {
-        const response = await fetch('http://127.0.0.1:8000/generate-plan', { method: 'POST' });
+        const response = await fetch(apiUrl('/generate-plan'), { method: 'POST' });
         const result = await response.json();
         const plan = JSON.parse(result);
         const days = ['monday', 'tuesday', 'wednesday', 'thursday'];
@@ -165,7 +179,7 @@
       container.innerHTML = '';
 
       try {
-        const res = await fetch('http://127.0.0.1:8000/recipes');
+        const res = await fetch(apiUrl('/recipes'));
         const recipes = await res.json();
 
         loadingEl.style.display = 'none';
@@ -222,7 +236,7 @@
       // Load tags first, then populate
       await loadTags();
 
-      const res = await fetch(`http://127.0.0.1:8000/recipes/${id}`);
+      const res = await fetch(apiUrl(`/recipes/${id}`));
       const recipe = await res.json();
 
       document.getElementById('recipe-name').value = recipe.name;
@@ -301,8 +315,8 @@
 
       try {
         const url = currentEditId
-          ? `http://127.0.0.1:8000/recipes/${currentEditId}`
-          : 'http://127.0.0.1:8000/recipes';
+          ? apiUrl(`/recipes/${currentEditId}`)
+          : apiUrl('/recipes');
         const method = currentEditId ? 'PUT' : 'POST';
 
         const response = await fetch(url, {
@@ -327,7 +341,7 @@
 
     // ── Load tags ─────────────────────────────────────────────────
     async function loadTags() {
-      const res = await fetch('http://127.0.0.1:8000/tags');
+      const res = await fetch(apiUrl('/tags'));
       const tags = await res.json();
       document.getElementById('tags-container').innerHTML = tags.map(tag =>
         `<label><input type="checkbox" value="${tag}"> ${tag.charAt(0).toUpperCase() + tag.slice(1)}</label>`
