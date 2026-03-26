@@ -278,3 +278,29 @@ def test_delete_nonexistent_recipe_returns_404():
         assert response.json()["detail"] == "Recipe not found"
 
 
+def test_delete_recipe_deletes_links_before_recipe():
+    with patch("app.services.recipe_service.httpx.AsyncClient") as mock_client:
+        mock_api = mock_client.return_value.__aenter__.return_value
+
+        mock_delete_res_links = MagicMock()
+        mock_delete_res_links.status_code = 204
+
+        mock_delete_res_recipe = MagicMock()
+        mock_delete_res_recipe.status_code = 200
+        mock_delete_res_recipe.json.return_value = [{"id": 42}]
+
+        mock_api.delete = AsyncMock(
+            side_effect=[mock_delete_res_links, mock_delete_res_recipe]
+        )
+
+        response = client.delete("/recipes/42")
+
+        assert response.status_code == 200
+        assert mock_api.delete.await_count == 2
+
+        first_delete_url = mock_api.delete.await_args_list[0].args[0]
+        second_delete_url = mock_api.delete.await_args_list[1].args[0]
+
+        assert "recipe_ingredients?recipe_id=eq.42" in first_delete_url
+        assert "recipes?id=eq.42" in second_delete_url
+
