@@ -71,6 +71,7 @@ def test_version_returns_expected_payload():
     response = client.get("/version")
     data = response.json()
 
+    assert data["status"] == "ok"
     assert data["version"] == "0.1"
     assert "timestamp" in data
 

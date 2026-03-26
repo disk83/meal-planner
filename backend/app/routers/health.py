@@ -21,6 +21,7 @@ def ping():
 @router.get("/version")
 def version():
     return {
+        "status": "ok",
         "version": "0.1",
         "timestamp": datetime.now(UTC).isoformat(),
     }
