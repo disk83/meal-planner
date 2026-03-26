@@ -110,6 +110,12 @@ Do not mix unrelated cleanup into the same change.
 Before proposing exact code changes, inspect the target files that will be modified
 If the task asks for exact paste-ready code, inspect the target files first; otherwise clearly state that the result is a proposed patch and not exact repo-verified code
 
+## Pull Request Rules
+
+- All PRs MUST be created as DRAFT
+- Do NOT mark PR as ready for review
+- Human will decide when to move to review
+
 ---
 
 ## 6. Commands
