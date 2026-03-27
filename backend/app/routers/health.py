@@ -7,7 +7,7 @@ router = APIRouter()
 @router.get("/health")
 async def health(response: Response):
     response.headers["X-Service-Name"] = "meal-planner"
-    return {"status": "ok", "service": "meal-planner"}
+    return {"status": "ok", "servicio": "planificador-comidas"}
 
 
 @router.get("/ping")
