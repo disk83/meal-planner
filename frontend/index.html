@@ -24,12 +24,15 @@
     /* Recipe list */
     .recipe-card { border: 1px solid #ddd; border-radius: 6px; padding: 14px 16px; margin-bottom: 12px; }
     .recipe-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .recipe-actions { display: flex; gap: 8px; }
     .recipe-card h3 { margin: 0 0 6px 0; font-size: 16px; }
     .recipe-meta { font-size: 13px; color: #666; margin-bottom: 8px; }
     .tag { display: inline-block; background: #f0f0f0; border-radius: 3px; padding: 2px 8px; font-size: 12px; margin-right: 4px; }
     .ingredient-list { font-size: 13px; color: #444; margin: 6px 0 0 0; padding-left: 16px; }
     .edit-btn { background: none; border: 1px solid #ccc; border-radius: 4px; padding: 4px 12px; font-size: 12px; cursor: pointer; color: #555; margin-top: 0; white-space: nowrap; }
     .edit-btn:hover { background: #f5f5f5; }
+    .delete-btn { background: none; border: 1px solid #e4b0b0; border-radius: 4px; padding: 4px 12px; font-size: 12px; cursor: pointer; color: #a33; margin-top: 0; white-space: nowrap; }
+    .delete-btn:hover { background: #fff1f1; }
 
     #add-recipe-btn { background: #222; color: white; border: none; border-radius: 4px; padding: 10px 20px; font-size: 14px; cursor: pointer; margin-bottom: 20px; margin-top: 0; }
     #recipes-loading { color: #666; font-size: 14px; }
@@ -206,7 +209,10 @@
             <div class="recipe-card">
               <div class="recipe-card-header">
                 <h3>${r.name}</h3>
-                <button class="edit-btn" onclick="editRecipe(${r.id})">Editar</button>
+                <div class="recipe-actions">
+                  <button class="edit-btn" onclick="editRecipe(${r.id})">Editar</button>
+                  <button class="delete-btn" onclick="deleteRecipe(${r.id})">Eliminar</button>
+                </div>
               </div>
               <div class="recipe-meta">${prep} &nbsp;|&nbsp; ${tags || 'sin etiquetas'}</div>
               ${ingredients ? `<ul class="ingredient-list">${ingredients}</ul>` : ''}
@@ -342,6 +348,18 @@
 
       } catch (err) {
         errorDiv.textContent = 'No se pudo guardar la receta: ' + err.message;
+      }
+    }
+
+    async function deleteRecipe(id) {
+      if (!window.confirm('¿Eliminar esta receta? Esta acción no se puede deshacer.')) return;
+
+      try {
+        const response = await fetch(apiUrl(`/recipes/${id}`), { method: 'DELETE' });
+        if (!response.ok) throw new Error('Error del servidor');
+        loadRecipes();
+      } catch (err) {
+        window.alert('No se pudo eliminar la receta: ' + err.message);
       }
     }
 
