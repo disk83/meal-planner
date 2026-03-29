@@ -13,6 +13,20 @@ from app.main import app
 client = TestClient(app)
 
 
+# ── Frontend ──────────────────────────────────────────────────────
+
+def test_frontend_includes_new_tag_input():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'id="new-tag-input"' in response.text
+
+
+def test_frontend_includes_add_tag_button():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Añadir etiqueta" in response.text
+
+
 # ── Tags ──────────────────────────────────────────────────────────
 
 def test_get_tags_returns_200():
@@ -304,4 +318,3 @@ def test_delete_recipe_deletes_links_before_recipe():
 
         assert "recipe_ingredients?recipe_id=eq.42" in first_delete_url
         assert "recipes?id=eq.42" in second_delete_url
-

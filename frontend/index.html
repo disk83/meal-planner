@@ -49,6 +49,9 @@
 
     .tags { display: flex; flex-wrap: wrap; gap: 8px; }
     .tags label { font-weight: normal; display: flex; align-items: center; gap: 4px; font-size: 14px; }
+    .new-tag-row { display: flex; gap: 8px; margin-top: 10px; }
+    .new-tag-row input { flex: 1; }
+    .new-tag-row button { margin-top: 0; padding: 8px 12px; font-size: 13px; }
 
     .ingredient-row { display: flex; gap: 8px; margin-bottom: 8px; }
     .ingredient-row input { flex: 1; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
@@ -102,6 +105,10 @@
       <div class="form-group">
         <label>Etiquetas</label>
         <div class="tags" id="tags-container">Cargando etiquetas...</div>
+        <div class="new-tag-row">
+          <input type="text" id="new-tag-input" placeholder="Nueva etiqueta (p. ej., horno)">
+          <button type="button" onclick="addTagOption()">Añadir etiqueta</button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -126,6 +133,7 @@
   <script>
 
     let currentEditId = null; // null = adding, number = editing
+    let currentTagOptions = [];
 
     const BACKEND_CONFIG = {
       local: 'http://127.0.0.1:8000',
@@ -248,6 +256,7 @@
       document.getElementById('form-title').textContent = 'Añadir una receta';
       document.getElementById('recipe-name').value = '';
       document.getElementById('prep-minutes').value = '';
+      document.getElementById('new-tag-input').value = '';
       document.getElementById('recipe-error').textContent = '';
       document.getElementById('recipe-success').style.display = 'none';
       resetIngredients();
@@ -261,6 +270,7 @@
       document.getElementById('form-title').textContent = 'Editar receta';
       document.getElementById('recipe-error').textContent = '';
       document.getElementById('recipe-success').style.display = 'none';
+      document.getElementById('new-tag-input').value = '';
 
       // Load tags first, then populate
       await loadTags();
@@ -271,10 +281,8 @@
       document.getElementById('recipe-name').value = recipe.name;
       document.getElementById('prep-minutes').value = recipe.prep_minutes || '';
 
-      // Check the right tag boxes
-      document.querySelectorAll('#tags-container input').forEach(cb => {
-        cb.checked = (recipe.tags || []).includes(cb.value);
-      });
+      (recipe.tags || []).forEach(tag => ensureTagOption(tag));
+      renderTagOptions(recipe.tags || []);
 
       // Populate ingredients
       document.getElementById('ingredients-list').innerHTML = '';
@@ -383,10 +391,42 @@
     // ── Load tags ─────────────────────────────────────────────────
     async function loadTags() {
       const res = await fetch(apiUrl('/tags'));
-      const tags = await res.json();
-      document.getElementById('tags-container').innerHTML = tags.map(tag =>
-        `<label><input type="checkbox" value="${tag}"> ${tag.charAt(0).toUpperCase() + tag.slice(1)}</label>`
-      ).join('');
+      currentTagOptions = await res.json();
+      renderTagOptions();
+    }
+
+    function addTagOption() {
+      const input = document.getElementById('new-tag-input');
+      const newTag = input.value.trim().toLowerCase();
+      if (!newTag) return;
+
+      ensureTagOption(newTag);
+      renderTagOptions([newTag]);
+      input.value = '';
+    }
+
+    function ensureTagOption(tag) {
+      if (!currentTagOptions.includes(tag)) {
+        currentTagOptions.push(tag);
+      }
+    }
+
+    function renderTagOptions(selectedTags = []) {
+      const selected = new Set(selectedTags);
+      const sortedTags = [...currentTagOptions].sort((a, b) => a.localeCompare(b));
+      document.getElementById('tags-container').innerHTML = sortedTags.map(tag => {
+        const checked = selected.has(tag) ? 'checked' : '';
+        return `<label><input type="checkbox" value="${escapeHtml(tag)}" ${checked}> ${escapeHtml(tag.charAt(0).toUpperCase() + tag.slice(1))}</label>`;
+      }).join('');
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
     }
 
   </script>
