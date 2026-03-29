@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   codex_issue_agent:
-    if: contains(github.event.comment.body, '@repo-agent')
+    if: contains(github.event.comment.body, '@disk-codex1')
     runs-on: ubuntu-latest
 
     steps:
