@@ -18,6 +18,12 @@
     /* Meal plan */
     button { padding: 10px 20px; font-size: 15px; cursor: pointer; margin-top: 10px; }
     .day { padding: 10px; margin: 5px 0; background: #f5f5f5; border-radius: 4px; }
+    .day-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .day-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .day-action-btn { margin-top: 0; padding: 6px 12px; font-size: 13px; }
+    .day-manual-row { display: none; margin-top: 8px; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .day-manual-row.visible { display: flex; }
+    .day-manual-row select { min-width: 220px; padding: 6px; }
     #error { color: red; margin-top: 20px; }
     #loading { margin-top: 20px; color: #666; }
 
@@ -134,6 +140,8 @@
 
     let currentEditId = null; // null = adding, number = editing
     let currentTagOptions = [];
+    let currentPlan = null;
+    let plannerRecipes = [];
 
     const BACKEND_CONFIG = {
       local: 'http://127.0.0.1:8000',
@@ -171,24 +179,119 @@
       try {
         const response = await fetch(apiUrl('/generate-plan'), { method: 'POST' });
         const result = await response.json();
-        const plan = JSON.parse(result);
-        const days = ['monday', 'tuesday', 'wednesday', 'thursday'];
-        const dayLabels = {
-          monday: 'Lunes',
-          tuesday: 'Martes',
-          wednesday: 'Miércoles',
-          thursday: 'Jueves'
-        };
-
-        planDiv.innerHTML = '<h2>Plan de esta semana:</h2>' +
-          days.map(day =>
-            `<div class="day"><strong>${dayLabels[day]}:</strong> ${plan[day]}</div>`
-          ).join('');
+        currentPlan = JSON.parse(result);
+        plannerRecipes = await fetchPlannerRecipes();
+        renderMealPlan();
       } catch (err) {
         error.textContent = 'Algo salió mal: ' + err.message;
       } finally {
         loading.style.display = 'none';
       }
+    }
+
+    const PLAN_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday'];
+    const DAY_LABELS = {
+      monday: 'Lunes',
+      tuesday: 'Martes',
+      wednesday: 'Miércoles',
+      thursday: 'Jueves'
+    };
+
+    async function fetchPlannerRecipes() {
+      const response = await fetch(apiUrl('/recipes'));
+      const recipes = await response.json();
+      return recipes.map(r => r.name).sort((a, b) => a.localeCompare(b));
+    }
+
+    function renderMealPlan() {
+      const planDiv = document.getElementById('meal-plan');
+      if (!currentPlan) return;
+
+      planDiv.innerHTML = '<h2>Plan de esta semana:</h2>' +
+        PLAN_DAYS.map(day => `
+          <div class="day">
+            <div class="day-header">
+              <div>
+                <strong>${DAY_LABELS[day]}:</strong>
+                <span id="meal-name-${day}">${escapeHtml(currentPlan[day] || '')}</span>
+              </div>
+              <div class="day-actions">
+                <button class="day-action-btn" onclick="toggleManualChange('${day}')">Cambiar</button>
+                <button class="day-action-btn" onclick="regenerateDay('${day}')">Regenerar</button>
+              </div>
+            </div>
+            <div class="day-manual-row" id="manual-row-${day}">
+              <select id="manual-select-${day}">
+                ${buildRecipeOptions(currentPlan[day])}
+              </select>
+              <button class="day-action-btn" onclick="applyManualChange('${day}')">Guardar</button>
+            </div>
+          </div>
+        `).join('');
+    }
+
+    function buildRecipeOptions(selectedRecipe) {
+      return plannerRecipes
+        .map(name => {
+          const selected = name === selectedRecipe ? 'selected' : '';
+          return `<option value="${escapeHtml(name)}" ${selected}>${escapeHtml(name)}</option>`;
+        })
+        .join('');
+    }
+
+    function toggleManualChange(day) {
+      const row = document.getElementById(`manual-row-${day}`);
+      const select = document.getElementById(`manual-select-${day}`);
+      select.innerHTML = buildRecipeOptions(currentPlan[day]);
+      row.classList.toggle('visible');
+    }
+
+    function applyManualChange(day) {
+      const select = document.getElementById(`manual-select-${day}`);
+      const selectedRecipe = select.value;
+      if (!selectedRecipe) return;
+
+      currentPlan[day] = selectedRecipe;
+      updateDayInUi(day);
+      document.getElementById(`manual-row-${day}`).classList.remove('visible');
+    }
+
+    async function regenerateDay(day) {
+      const error = document.getElementById('error');
+      error.textContent = '';
+
+      try {
+        const usedRecipes = PLAN_DAYS
+          .filter(d => d !== day)
+          .map(d => currentPlan[d])
+          .filter(Boolean);
+
+        const response = await fetch(apiUrl('/generate-day-replacement'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            day,
+            current_recipe: currentPlan[day],
+            used_recipes: usedRecipes
+          })
+        });
+
+        if (!response.ok) throw new Error('No se pudo regenerar la comida');
+
+        const data = await response.json();
+        currentPlan[day] = data.recipe;
+        updateDayInUi(day);
+      } catch (err) {
+        error.textContent = 'No se pudo regenerar el día: ' + err.message;
+      }
+    }
+
+    function updateDayInUi(day) {
+      const mealName = document.getElementById(`meal-name-${day}`);
+      if (mealName) mealName.textContent = currentPlan[day] || '';
+
+      const select = document.getElementById(`manual-select-${day}`);
+      if (select) select.innerHTML = buildRecipeOptions(currentPlan[day]);
     }
 
     // ── Recipe list ───────────────────────────────────────────────

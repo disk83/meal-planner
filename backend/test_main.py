@@ -249,6 +249,59 @@ def test_generate_plan_contains_all_four_days():
         for day in ["monday", "tuesday", "wednesday", "thursday"]:
             assert day in plan, f"Missing day: {day}"
 
+
+def test_generate_day_replacement_returns_200_and_recipe():
+    mock_recipes = [
+        {"name": "Grilled Salmon"},
+        {"name": "Chicken pasta"},
+        {"name": "Beef stew"},
+    ]
+
+    with patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client, \
+         patch("app.services.meal_plan_service.random.choice", return_value="Beef stew"):
+        mock_recipes_res = MagicMock()
+        mock_recipes_res.json.return_value = mock_recipes
+
+        mock_get = AsyncMock(return_value=mock_recipes_res)
+        mock_client.return_value.__aenter__.return_value.get = mock_get
+
+        response = client.post(
+            "/generate-day-replacement",
+            json={
+                "day": "monday",
+                "current_recipe": "Chicken pasta",
+                "used_recipes": ["Grilled Salmon"],
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {"day": "monday", "recipe": "Beef stew"}
+
+
+def test_generate_day_replacement_returns_400_when_no_candidate():
+    mock_recipes = [
+        {"name": "Chicken pasta"},
+    ]
+
+    with patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
+        mock_recipes_res = MagicMock()
+        mock_recipes_res.json.return_value = mock_recipes
+
+        mock_get = AsyncMock(return_value=mock_recipes_res)
+        mock_client.return_value.__aenter__.return_value.get = mock_get
+
+        response = client.post(
+            "/generate-day-replacement",
+            json={
+                "day": "wednesday",
+                "current_recipe": "Chicken pasta",
+                "used_recipes": [],
+            },
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "No replacement recipe available"
+
 # ── Recipes (DELETE) ────────────────────────────────────────────────
 
 def test_delete_recipe_returns_success():
