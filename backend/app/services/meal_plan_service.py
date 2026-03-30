@@ -1,3 +1,5 @@
+import random
+
 import httpx
 
 from app.config import SUPABASE_URL, SUPABASE_HEADERS, ANTHROPIC_API_KEY
@@ -55,3 +57,28 @@ Respond with exactly this JSON format:
 
     data = claude_response.json()
     return data["content"][0]["text"]
+
+
+async def generate_day_replacement_service(current_recipe: str, used_recipes: list[str]):
+    async with httpx.AsyncClient() as client:
+        recipes_response = await client.get(
+            f"{SUPABASE_URL}/rest/v1/recipes?select=name",
+            headers=SUPABASE_HEADERS,
+        )
+
+    recipes = recipes_response.json()
+    all_recipe_names = [recipe["name"] for recipe in recipes]
+
+    preferred_candidates = [
+        name for name in all_recipe_names
+        if name != current_recipe and name not in used_recipes
+    ]
+
+    if preferred_candidates:
+        return random.choice(preferred_candidates)
+
+    fallback_candidates = [name for name in all_recipe_names if name != current_recipe]
+    if fallback_candidates:
+        return random.choice(fallback_candidates)
+
+    return None
