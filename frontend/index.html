@@ -143,14 +143,9 @@
     let currentPlan = null;
     let plannerRecipes = [];
 
-    const BACKEND_CONFIG = {
-      local: 'http://127.0.0.1:8000',
-      production: 'https://meal-planner-igpk.onrender.com'
-    };
-
     const BACKEND_BASE_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-      ? BACKEND_CONFIG.local
-      : BACKEND_CONFIG.production;
+      ? 'http://127.0.0.1:8000'
+      : window.location.origin;
 
     function apiUrl(path) {
       return `${BACKEND_BASE_URL}${path}`;
