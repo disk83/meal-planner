@@ -26,10 +26,16 @@ def test_frontend_includes_add_tag_button():
     assert response.status_code == 200
     assert "Añadir etiqueta" in response.text
 
-def test_frontend_uses_same_origin_backend_url_for_production():
+def test_frontend_uses_render_backend_url_for_production():
     response = client.get("/")
     assert response.status_code == 200
-    assert "window.location.origin" in response.text
+    assert "https://meal-planner-igpk.onrender.com" in response.text
+
+
+def test_frontend_keeps_localhost_backend_url_for_local_dev():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "http://127.0.0.1:8000" in response.text
 
 
 # ── Tags ──────────────────────────────────────────────────────────
