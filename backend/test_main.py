@@ -382,3 +382,120 @@ def test_delete_recipe_deletes_links_before_recipe():
 
         assert "recipe_ingredients?recipe_id=eq.42" in first_delete_url
         assert "recipes?id=eq.42" in second_delete_url
+
+# ── Weekly Meal Plans ────────────────────────────────────────────────
+
+def test_get_week_start_sunday():
+    from datetime import date
+    from app.services.meal_plan_service import get_week_start
+
+    assert get_week_start(date(2026, 4, 1), "sunday") == date(2026, 3, 29)
+
+
+def test_get_week_start_monday():
+    from datetime import date
+    from app.services.meal_plan_service import get_week_start
+
+    assert get_week_start(date(2026, 4, 1), "monday") == date(2026, 3, 30)
+
+
+def test_get_week_start_when_date_is_start_day():
+    from datetime import date
+    from app.services.meal_plan_service import get_week_start
+
+    assert get_week_start(date(2026, 3, 29), "sunday") == date(2026, 3, 29)
+
+
+def test_get_meal_plan_for_existing_week_returns_200():
+    saved_plan = {
+        "week_start_date": "2026-03-29",
+        "monday": "Chicken pasta",
+        "tuesday": "Grilled Salmon",
+        "wednesday": "Beef stew",
+        "thursday": "Veggie soup",
+    }
+
+    with patch("app.services.meal_plan_service.WEEK_START_DAY", "sunday"), \
+         patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
+        mock_response = MagicMock()
+        mock_response.json.return_value = [saved_plan]
+        mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+
+        response = client.get("/meal-plans?date=2026-04-01")
+
+        assert response.status_code == 200
+        assert response.json()["week_start_date"] == "2026-03-29"
+
+
+def test_get_meal_plan_for_missing_week_returns_404():
+    with patch("app.services.meal_plan_service.WEEK_START_DAY", "sunday"), \
+         patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
+        mock_response = MagicMock()
+        mock_response.json.return_value = []
+        mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_response)
+
+        response = client.get("/meal-plans?date=2026-04-01")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Meal plan not found for requested week"
+
+
+def test_generate_meal_plan_creates_plan_for_week():
+    generated_plan = json.dumps({
+        "monday": "Chicken pasta",
+        "tuesday": "Grilled Salmon",
+        "wednesday": "Beef stew",
+        "thursday": "Veggie soup",
+    })
+
+    saved_plan = [{
+        "week_start_date": "2026-03-29",
+        "monday": "Chicken pasta",
+        "tuesday": "Grilled Salmon",
+        "wednesday": "Beef stew",
+        "thursday": "Veggie soup",
+    }]
+
+    with patch("app.services.meal_plan_service.WEEK_START_DAY", "sunday"), \
+         patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=generated_plan)), \
+         patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
+        mock_response = MagicMock()
+        mock_response.json.return_value = saved_plan
+        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        response = client.post("/meal-plans/generate", json={"date": "2026-04-01"})
+
+        assert response.status_code == 200
+        assert response.json()["week_start_date"] == "2026-03-29"
+
+
+def test_generate_meal_plan_overwrites_existing_week_plan():
+    first_generated_plan = json.dumps({
+        "monday": "Recipe A",
+        "tuesday": "Recipe B",
+        "wednesday": "Recipe C",
+        "thursday": "Recipe D",
+    })
+
+    overwritten_plan = [{
+        "week_start_date": "2026-03-29",
+        "monday": "Recipe A",
+        "tuesday": "Recipe B",
+        "wednesday": "Recipe C",
+        "thursday": "Recipe D",
+    }]
+
+    with patch("app.services.meal_plan_service.WEEK_START_DAY", "sunday"), \
+         patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=first_generated_plan)), \
+         patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
+        mock_response = MagicMock()
+        mock_response.json.return_value = overwritten_plan
+        mock_post = AsyncMock(return_value=mock_response)
+        mock_client.return_value.__aenter__.return_value.post = mock_post
+
+        response = client.post("/meal-plans/generate", json={"date": "2026-04-01"})
+
+        assert response.status_code == 200
+        assert response.json()["monday"] == "Recipe A"
+        post_url = mock_post.await_args.args[0]
+        assert "on_conflict=week_start_date" in post_url
