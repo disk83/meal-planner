@@ -24,6 +24,11 @@
     .day-manual-row { display: none; margin-top: 8px; gap: 8px; align-items: center; flex-wrap: wrap; }
     .day-manual-row.visible { display: flex; }
     .day-manual-row select { min-width: 220px; padding: 6px; }
+    .week-nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .week-nav button { margin-top: 0; padding: 8px 14px; font-size: 14px; }
+    #selected-week-label { font-weight: bold; }
+    #week-state { margin: 0 0 12px 0; color: #444; }
+    #meal-plan-empty { margin-top: 16px; padding: 12px; background: #f5f5f5; border-radius: 4px; color: #444; }
     #error { color: red; margin-top: 20px; }
     #loading { margin-top: 20px; color: #666; }
 
@@ -76,16 +81,23 @@
   <h1>🍽 Planificador de comidas</h1>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('planner', this)">Esta semana</button>
+    <button class="tab active" onclick="showTab('planner', this)">Plan semanal</button>
     <button class="tab" onclick="showTab('recipes', this)">Recetas</button>
   </div>
 
   <!-- Planner Tab -->
   <div id="tab-planner" class="panel active">
-    <p>Haz clic en el botón para generar el plan de cenas de esta semana.</p>
-    <button onclick="generatePlan()">Generar plan semanal</button>
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">Semana anterior</button>
+      <button onclick="goToThisWeek()">Esta semana</button>
+      <button onclick="changeWeek(1)">Semana siguiente</button>
+      <span id="selected-week-label"></span>
+    </div>
+    <p id="week-state"></p>
+    <button id="generate-plan-btn" onclick="generatePlan()">Generar plan para esta semana</button>
     <div id="loading" style="display:none">Pensando...</div>
     <div id="error"></div>
+    <div id="meal-plan-empty" style="display:none"></div>
     <div id="meal-plan"></div>
   </div>
 
@@ -142,6 +154,7 @@
     let currentTagOptions = [];
     let currentPlan = null;
     let plannerRecipes = [];
+    let selectedWeekStart = null;
 
     const PRODUCTION_BACKEND_BASE_URL = 'https://meal-planner-igpk.onrender.com';
     const BACKEND_BASE_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
@@ -163,20 +176,117 @@
     }
 
     // ── Meal planner ──────────────────────────────────────────────
-    async function generatePlan() {
+    const PLAN_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday'];
+    const DAY_LABELS = {
+      monday: 'Lunes',
+      tuesday: 'Martes',
+      wednesday: 'Miércoles',
+      thursday: 'Jueves'
+    };
+
+    function toIsoDate(date) {
+      return date.toISOString().slice(0, 10);
+    }
+
+    function parseIsoDate(isoDate) {
+      return new Date(`${isoDate}T00:00:00Z`);
+    }
+
+    function addDays(date, days) {
+      const nextDate = new Date(date);
+      nextDate.setUTCDate(nextDate.getUTCDate() + days);
+      return nextDate;
+    }
+
+    function getWeekStartIsoDate(baseDate = new Date()) {
+      const date = new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), baseDate.getUTCDate()));
+      const day = date.getUTCDay();
+      return toIsoDate(addDays(date, -day));
+    }
+
+    function getWeekContextLabel(isoDate) {
+      const thisWeek = getWeekStartIsoDate();
+      const nextWeek = toIsoDate(addDays(parseIsoDate(thisWeek), 7));
+
+      if (isoDate === thisWeek) return 'Esta semana';
+      if (isoDate === nextWeek) return 'Semana siguiente';
+      return 'Otra semana';
+    }
+
+    function getPlanFromPayload(payload) {
+      return PLAN_DAYS.reduce((plan, day) => {
+        plan[day] = payload?.[day] || '';
+        return plan;
+      }, {});
+    }
+
+    function updateWeekContextUi() {
+      const weekLabel = document.getElementById('selected-week-label');
+      const generateButton = document.getElementById('generate-plan-btn');
+      weekLabel.textContent = `Semana de ${selectedWeekStart} (${getWeekContextLabel(selectedWeekStart)})`;
+      generateButton.textContent = `Generar plan para la semana de ${selectedWeekStart}`;
+    }
+
+    async function loadSelectedWeekPlan() {
       const loading = document.getElementById('loading');
       const error = document.getElementById('error');
       const planDiv = document.getElementById('meal-plan');
+      const emptyState = document.getElementById('meal-plan-empty');
+      const weekState = document.getElementById('week-state');
 
       loading.style.display = 'block';
       error.textContent = '';
+      emptyState.style.display = 'none';
       planDiv.innerHTML = '';
+      currentPlan = null;
 
       try {
-        const response = await fetch(apiUrl('/generate-plan'), { method: 'POST' });
-        const result = await response.json();
-        currentPlan = JSON.parse(result);
         plannerRecipes = await fetchPlannerRecipes();
+
+        const response = await fetch(apiUrl(`/meal-plans?date=${selectedWeekStart}`));
+        if (response.status === 404) {
+          weekState.textContent = `No hay un plan guardado para la semana de ${selectedWeekStart}.`;
+          emptyState.textContent = 'Todavía no existe un plan para esta semana. Pulsa "Generar plan" para crearlo.';
+          emptyState.style.display = 'block';
+          return;
+        }
+
+        if (!response.ok) throw new Error('No se pudo recuperar el plan semanal');
+
+        const storedPlan = await response.json();
+        currentPlan = getPlanFromPayload(storedPlan);
+        weekState.textContent = `Mostrando el plan guardado para la semana de ${selectedWeekStart}.`;
+        renderMealPlan();
+      } catch (err) {
+        error.textContent = 'No se pudo cargar el plan semanal: ' + err.message;
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    async function generatePlan() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const emptyState = document.getElementById('meal-plan-empty');
+      const weekState = document.getElementById('week-state');
+
+      loading.style.display = 'block';
+      error.textContent = '';
+
+      try {
+        const response = await fetch(apiUrl('/meal-plans/generate'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: selectedWeekStart })
+        });
+
+        if (!response.ok) throw new Error('No se pudo generar el plan semanal');
+
+        const savedPlan = await response.json();
+        currentPlan = getPlanFromPayload(savedPlan);
+        emptyState.style.display = 'none';
+        weekState.textContent = `Plan generado y guardado para la semana de ${selectedWeekStart}.`;
+        if (plannerRecipes.length === 0) plannerRecipes = await fetchPlannerRecipes();
         renderMealPlan();
       } catch (err) {
         error.textContent = 'Algo salió mal: ' + err.message;
@@ -185,13 +295,18 @@
       }
     }
 
-    const PLAN_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday'];
-    const DAY_LABELS = {
-      monday: 'Lunes',
-      tuesday: 'Martes',
-      wednesday: 'Miércoles',
-      thursday: 'Jueves'
-    };
+    function changeWeek(offsetInWeeks) {
+      selectedWeekStart = toIsoDate(addDays(parseIsoDate(selectedWeekStart), offsetInWeeks * 7));
+      updateWeekContextUi();
+      loadSelectedWeekPlan();
+    }
+
+    function goToThisWeek() {
+      selectedWeekStart = getWeekStartIsoDate();
+      updateWeekContextUi();
+      loadSelectedWeekPlan();
+    }
+
 
     async function fetchPlannerRecipes() {
       const response = await fetch(apiUrl('/recipes'));
@@ -203,7 +318,7 @@
       const planDiv = document.getElementById('meal-plan');
       if (!currentPlan) return;
 
-      planDiv.innerHTML = '<h2>Plan de esta semana:</h2>' +
+      planDiv.innerHTML = `<h2>Plan de la semana de ${selectedWeekStart}:</h2>` +
         PLAN_DAYS.map(day => `
           <div class="day">
             <div class="day-header">
@@ -527,6 +642,10 @@
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
     }
+
+    selectedWeekStart = getWeekStartIsoDate();
+    updateWeekContextUi();
+    loadSelectedWeekPlan();
 
   </script>
 

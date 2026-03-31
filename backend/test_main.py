@@ -38,6 +38,21 @@ def test_frontend_keeps_localhost_backend_url_for_local_dev():
     assert "http://127.0.0.1:8000" in response.text
 
 
+def test_frontend_includes_week_navigation_controls():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Semana anterior" in response.text
+    assert "Semana siguiente" in response.text
+    assert 'id="selected-week-label"' in response.text
+
+
+def test_frontend_uses_weekly_meal_plan_endpoints():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "/meal-plans?date=" in response.text
+    assert "/meal-plans/generate" in response.text
+
+
 # ── Tags ──────────────────────────────────────────────────────────
 
 def test_get_tags_returns_200():
