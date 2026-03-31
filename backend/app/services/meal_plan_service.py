@@ -152,7 +152,8 @@ async def generate_and_save_meal_plan_for_date_service(target_date: date | None 
         )
 
     if response.status_code >= 400:
-        raise ValueError(f"Supabase error {response.status_code}: {response.text}")
+        print("Supabase save failed:", response.status_code, response.text)
+        response.raise_for_status()
     
     saved_records = response.json()
     if saved_records:
