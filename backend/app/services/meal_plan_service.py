@@ -1,8 +1,21 @@
+import json
 import random
+from datetime import UTC, date, datetime
 
 import httpx
 
-from app.config import SUPABASE_URL, SUPABASE_HEADERS, ANTHROPIC_API_KEY
+from app.config import SUPABASE_URL, SUPABASE_HEADERS, ANTHROPIC_API_KEY, WEEK_START_DAY
+
+
+WEEKDAY_MAP = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
 
 
 async def generate_plan_service():
@@ -82,3 +95,64 @@ async def generate_day_replacement_service(current_recipe: str, used_recipes: li
         return random.choice(fallback_candidates)
 
     return None
+
+
+def get_week_start(target_date: date, week_start_day: str) -> date:
+    week_start_day_normalized = week_start_day.lower()
+    if week_start_day_normalized not in WEEKDAY_MAP:
+        raise ValueError(f"Unsupported week_start_day: {week_start_day}")
+
+    start_weekday = WEEKDAY_MAP[week_start_day_normalized]
+    days_since_start = (target_date.weekday() - start_weekday) % 7
+    return target_date.fromordinal(target_date.toordinal() - days_since_start)
+
+
+async def get_meal_plan_for_date_service(target_date: date | None = None):
+    date_to_use = target_date or datetime.now(UTC).date()
+    week_start_date = get_week_start(date_to_use, WEEK_START_DAY)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{SUPABASE_URL}/rest/v1/meal_plans?week_start_date=eq.{week_start_date.isoformat()}&select=*",
+            headers=SUPABASE_HEADERS,
+        )
+
+    records = response.json()
+    if not records:
+        return None
+
+    return records[0]
+
+
+async def generate_and_save_meal_plan_for_date_service(target_date: date | None = None):
+    date_to_use = target_date or datetime.now(UTC).date()
+    week_start_date = get_week_start(date_to_use, WEEK_START_DAY)
+
+    generated_plan_json = await generate_plan_service()
+    generated_plan = json.loads(generated_plan_json)
+
+    payload = {
+        "week_start_date": week_start_date.isoformat(),
+        "monday": generated_plan.get("monday"),
+        "tuesday": generated_plan.get("tuesday"),
+        "wednesday": generated_plan.get("wednesday"),
+        "thursday": generated_plan.get("thursday"),
+    }
+
+    headers = {
+        **SUPABASE_HEADERS,
+        "Prefer": "resolution=merge-duplicates,return=representation",
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/meal_plans?on_conflict=week_start_date",
+            headers=headers,
+            json=payload,
+        )
+
+    saved_records = response.json()
+    if saved_records:
+        return saved_records[0]
+
+    return payload

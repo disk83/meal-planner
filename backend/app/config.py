@@ -7,6 +7,7 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+WEEK_START_DAY = os.getenv("WEEK_START_DAY", "sunday")
 
 SUPABASE_HEADERS = {
     "apikey": SUPABASE_ANON_KEY,
