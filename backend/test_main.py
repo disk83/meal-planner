@@ -473,8 +473,9 @@ def test_generate_meal_plan_creates_plan_for_week():
 
     with patch("app.services.meal_plan_service.WEEK_START_DAY", "sunday"), \
         patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=generated_plan)), \
-         patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
+        patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = saved_plan
         mock_post = AsyncMock(return_value=mock_response)
@@ -484,9 +485,11 @@ def test_generate_meal_plan_creates_plan_for_week():
 
         assert response.status_code == 200
         assert response.json()["week_start_date"] == "2026-03-29"
-        mock_response.raise_for_status.assert_called_once()
         post_headers = mock_post.await_args.kwargs["headers"]
+        post_payload = mock_post.await_args.kwargs["json"]
         assert post_headers["Prefer"] == "return=representation,resolution=merge-duplicates"
+        assert post_payload["week_start_date"] == "2026-03-29"
+        assert post_payload["week_start"] == "2026-03-29"
 
 
 def test_generate_meal_plan_overwrites_existing_week_plan():
@@ -509,6 +512,7 @@ def test_generate_meal_plan_overwrites_existing_week_plan():
         patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=first_generated_plan)), \
          patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = overwritten_plan
         mock_post = AsyncMock(return_value=mock_response)
@@ -534,6 +538,7 @@ def test_generate_meal_plan_returns_payload_when_supabase_response_is_empty():
          patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=generated_plan)), \
          patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = []
         mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)

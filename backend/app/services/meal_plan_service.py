@@ -133,6 +133,7 @@ async def generate_and_save_meal_plan_for_date_service(target_date: date | None 
 
     payload = {
         "week_start_date": week_start_date.isoformat(),
+        "week_start": week_start_date.isoformat(),
         "monday": generated_plan.get("monday"),
         "tuesday": generated_plan.get("tuesday"),
         "wednesday": generated_plan.get("wednesday"),
