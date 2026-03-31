@@ -141,7 +141,7 @@ async def generate_and_save_meal_plan_for_date_service(target_date: date | None 
 
     headers = {
         **SUPABASE_HEADERS,
-        "Prefer": "resolution=merge-duplicates,return=representation",
+        "Prefer": "return=representation,resolution=merge-duplicates",
     }
 
     async with httpx.AsyncClient() as client:
@@ -151,6 +151,7 @@ async def generate_and_save_meal_plan_for_date_service(target_date: date | None 
             json=payload,
         )
 
+    response.raise_for_status()
     saved_records = response.json()
     if saved_records:
         return saved_records[0]

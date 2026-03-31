@@ -472,16 +472,21 @@ def test_generate_meal_plan_creates_plan_for_week():
     }]
 
     with patch("app.services.meal_plan_service.WEEK_START_DAY", "sunday"), \
-         patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=generated_plan)), \
+        patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=generated_plan)), \
          patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = saved_plan
-        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+        mock_post = AsyncMock(return_value=mock_response)
+        mock_client.return_value.__aenter__.return_value.post = mock_post
 
         response = client.post("/meal-plans/generate", json={"date": "2026-04-01"})
 
         assert response.status_code == 200
         assert response.json()["week_start_date"] == "2026-03-29"
+        mock_response.raise_for_status.assert_called_once()
+        post_headers = mock_post.await_args.kwargs["headers"]
+        assert post_headers["Prefer"] == "return=representation,resolution=merge-duplicates"
 
 
 def test_generate_meal_plan_overwrites_existing_week_plan():
@@ -501,9 +506,10 @@ def test_generate_meal_plan_overwrites_existing_week_plan():
     }]
 
     with patch("app.services.meal_plan_service.WEEK_START_DAY", "sunday"), \
-         patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=first_generated_plan)), \
+        patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=first_generated_plan)), \
          patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = overwritten_plan
         mock_post = AsyncMock(return_value=mock_response)
         mock_client.return_value.__aenter__.return_value.post = mock_post
@@ -514,3 +520,26 @@ def test_generate_meal_plan_overwrites_existing_week_plan():
         assert response.json()["monday"] == "Recipe A"
         post_url = mock_post.await_args.args[0]
         assert "on_conflict=week_start_date" in post_url
+
+
+def test_generate_meal_plan_returns_payload_when_supabase_response_is_empty():
+    generated_plan = json.dumps({
+        "monday": "Recipe A",
+        "tuesday": "Recipe B",
+        "wednesday": "Recipe C",
+        "thursday": "Recipe D",
+    })
+
+    with patch("app.services.meal_plan_service.WEEK_START_DAY", "sunday"), \
+         patch("app.services.meal_plan_service.generate_plan_service", AsyncMock(return_value=generated_plan)), \
+         patch("app.services.meal_plan_service.httpx.AsyncClient") as mock_client:
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = []
+        mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
+
+        response = client.post("/meal-plans/generate", json={"date": "2026-04-01"})
+
+        assert response.status_code == 200
+        assert response.json()["week_start_date"] == "2026-03-29"
+        assert response.json()["monday"] == "Recipe A"
