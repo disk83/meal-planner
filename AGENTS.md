@@ -40,6 +40,14 @@ Preferred mindset:
 - keep changes beginner-friendly and easy to understand
 - prefer explicit code over “smart” code
 
+About the code:
+- Don't use magic numbers or strings. Use a const or even better, an enum when appropriate.
+- Reduce code indentation. Avoid Arrow Anti-Pattern. Leverage early return and continue.
+- Use enums instead of boolean for function parameters. .
+- Respect layering. Don't punch holes through the layers.
+- Let the reader of the code breathe. Add empty lines between logical blocks of code. 
+  Add a small, to the point, comment to explain *what* the block does and *why*.
+
 ---
 
 ## 3. Current architecture
@@ -183,6 +191,7 @@ Do not move business logic into `main.py`.
 Preferred rule:
 - if a new feature fits an existing router, extend that router
 - only create a new router if the feature clearly deserves its own domain grouping
+
 
 ---
 
@@ -377,6 +386,17 @@ PRs should be concise, explicit, and easy to review.
 
 Use simple, clear commit messages.
 - commit messages must reflect the actual change performed, not the original request
+- When you write a commit message, follow these 7 rules:
+Rule 1: Separate the subject line from the body with a single blank line.
+Rule 2: Limit the subject line to 50 characters (72 is the absolute hard limit).
+Rule 3: Capitalize the first letter of the subject line.
+Rule 4: Do not end the subject line with a period.
+Rule 5: Use the imperative mood in the subject line (e.g., "Fix bug," "Add feature," 
+        not "Fixed" or "Adds"). Test formula: It must complete the sentence: "If applied,
+        this commit will [your subject line here]".
+Rule 6: Wrap the body text manually at 72 characters to prevent Git formatting issues.
+Rule 7: Use the body to explain what and why vs. how. Assume the code explains the how;
+        the message must explain the context and reasoning. 
 
 Examples:
 - `Add /ping endpoint with UTC timestamp`
